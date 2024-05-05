@@ -1,1 +1,1 @@
-return require('src.array.array');
+return require('array.array');
