@@ -27,7 +27,7 @@ Lut exports a table with a an entry-point field, `lut`, which is a factory funct
 local lut = require('lut').lut;
 
 ---@type Describe,It,Test
-local describe, it, test = require('lut').lut();
+local describe, it, test = lut();
 ```
 
 # Example
