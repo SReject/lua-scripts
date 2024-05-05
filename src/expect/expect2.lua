@@ -327,7 +327,7 @@ end
 ---Throws: `EXPECTED_NOT_INSTANCE_OF` - When negated, the actual values' metatable index did equal those that were expected
 ---@param ... any The corresponding class to test the actual values against
 ---@return sreject.Expect
-function Expect:a(...)
+function Expect:as(...)
     if (self.success == false) then
         error({
             type = 'INIT_FAILED',
@@ -338,7 +338,13 @@ function Expect:a(...)
     elseif (self.suppress and self.result == false) then
         return self;
     else
-        local test = validate(self, function (self, index, expect, actual) return actual ~= nil and expect == getmetatable(expect).__index; end, table.pack(...))
+        local test = validate(
+            self,
+            function (self, index, expect, actual)
+                return actual ~= nil and expect == getmetatable(actual).__index;
+            end,
+            table.pack(...)
+        )
         if (test.passed == false) then
             if (self.suppress) then
                 self.result = false;
