@@ -1,1 +1,1 @@
-return require('src.lut.lut');
+return require('lut.lut');

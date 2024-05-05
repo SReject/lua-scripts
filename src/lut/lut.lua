@@ -1,276 +1,244 @@
-local term, colors = term,colors;
-
-local function write(text, color)
-    local current = table.pack(term.getTextColor());
-    if (color ~= nil) then
-        term.setTextColor(colors[color]);
-    end
-    term.write(text);
-    term.setTextColor(table.unpack(current));
-end
-
-local function writeTitleBlock(indent, title, pass, fail, count)
-    term.clearLine();
-    term.write((' '):rep(indent * 2));
-    if (pass == '?') then
-        write('[', 'gray');
-        write(tostring(pass), 'yellow');
-        write(',', 'gray');
-        write(tostring(tostring(fail)), 'yellow');
-        write('/', 'gray');
-        write(tostring(count), 'yellow');
-        write(']', 'gray');
-    else
-        write('[', 'gray');
-        write(tostring(pass), 'lime');
-        write(',', 'gray');
-        write(tostring(tostring(fail)), 'red');
-        write('/', 'gray');
-        write(tostring(count));
-        write(']', 'gray');
-    end
-    write(string.format(' %s', title));
-    local ignore,line = term.getCursorPos();
-    term.setCursorPos(1, line + 1);
-end
-
----@class Expect
----@field errored boolean
----@field error any
----@field results any[]
-local Expect = {};
-
----The expected result did not return expected values
----@param ... any The value(s) the result should equal. This is not an or/and, but compares each index of the result to each index of the value(s) given
-function Expect:toEqual(...)
-    if (self.errored == true) then
-        error('Threw an unexpected error: ' .. tostring(self.error[1]));
-    end
-
-    local results = self.results;
-    if (results == nil) then
-        results = {};
-    end
-    local args = {...};
-    if (args == nil) then
-        args = {};
-    end
-    local len = #args;
-    if (len < #results) then
-        error('returned more values('..#results..') than expected('..len..')');
-    elseif (len > #results) then
-        error('returned fewer values('..#results..') than expected('..len..')');
-    else
-        local index,raise = 1, false;
-        while (index <= len) do
-            if (args[index] ~= results[index]) then
-                raise = true;
-                break;
+-- Default reporter
+local defaultReporter = function()
+    local indent = -1;
+    return function (eventname, details)
+        if (eventname == 'OPENED') then
+            -- ignored
+        elseif (eventname == 'NEW_TEST_GROUP_OPEN') then
+            -- ignored
+        elseif (eventname == 'NEW_TEST_GROUP_CLOSED') then
+            -- ignored
+        elseif (eventname == 'NEW_UNIT_TEST') then
+            -- ignored
+        elseif (eventname == 'CLOSED') then
+            -- ignored
+        elseif (eventname == 'TEST_GROUP_START') then
+            indent = indent + 1;
+            print(string.format('%s%s', string.rep(' ', indent * 2), details.title));
+        elseif (eventname == 'TEST_GROUP_END') then
+            indent = indent - 1;
+        elseif (eventname == 'TEST_GROUP_SKIPPED') then
+            -- ignored
+        elseif (eventname == 'UNIT_TEST_START') then
+            -- ignored
+        elseif (eventname == 'UNIT_TEST_END') then
+            if (details.success == true) then
+                print(string.format('%s [ok] %s', string.rep(' ', indent * 2), details.title));
+            else
+                print(string.format('%s [error] %s', string.rep(' ', indent * 2), details.title));
+                print(string.format('%s  ', string.rep(' ', indent * 2), details.result.message));
             end
-            index = index + 1;
-        end
-        if (raise) then
-            error('returned value('..tostring(results[index])..') did not equal expected value('..tostring(args[index])..')');
-        end
-
-        return self;
-    end
-end
-
----The expected result returned values that it should not
----@param ... any The value(s) the result should not have equaled. This is not an or/and, but compares each index of the result to each index of the value(s) given
-function Expect:toNotEqual(...)
-    if (self.errored) then
-        error('Threw an unexpected error: ' .. tostring(self.error[1]));
-    end
-
-    local isEqual = pcall(Expect.toEqual, self, ...);
-    if (isEqual == true) then
-        error('returned values equaled expected values');
-    else
-        return self;
-    end
-end
-
-function Expect:toBe(...)
-    if (self.errored) then
-        error('Threw an unexpected error: ' .. tostring(self.error[1]));
-    else
-
-        local results = self.results;
-        if (results == nil) then
-            results = {};
-        end
-
-        local args = {...};
-        if (args == nil) then
-            args = {};
-        end
-
-        local len = #args;
-        if (len < #results) then
-            error('returned more values('..#results..') than expected('..len..')');
-        elseif (len > #results) then
-            error('returned fewer values('..#results..') than expected('..len..')');
+        elseif (eventname == 'UNIT_TEST_SKIPPED') then
+            -- ignored
+        elseif (eventname == 'TESTING_END') then
+            -- ignored
         else
-            local index,raise = 1, false;
-            while (index <= len) do
-                if (args[index] ~= type(results[index])) then
-                    raise = true;
+            print(eventname);
+        end
+    end
+end
+
+-- consts
+local eventname = {
+    ERROR = 'ERROR',
+    OPENED = 'OPENED',
+    CLOSED = 'CLOSED',
+    NEW_TEST_GROUP_OPEN = 'NEW_TEST_GROUP_OPEN',
+    NEW_TEST_GROUP_CLOSED = 'NEW_TEST_GROUP_CLOSED',
+    TEST_GROUP_START = 'TEST_GROUP_START',
+    TEST_GROUP_END = 'TEST_GROUP_END',
+    TEST_GROUP_SKIPPED = 'SKIPPED_TEST_GROUP',
+    NEW_UNIT_TEST = 'NEW_UNIT_TEST',
+    UNIT_TEST_START = 'UNIT_TEST_START',
+    UNIT_TEST_END = 'UNIT_TEST_END',
+    UNIT_TEST_SKIPPED = 'UNIT_TEST_SKIPPED',
+    TESTING_START = 'TESTING_START',
+    TESTING_END = 'TESTING_END'
+};
+
+local errortypes = {
+    INVALID_CALLBACK = 'INVALID_CALLBACK',
+    NOT_A_GROUP = 'NOT_A_GROUP',
+    TEST_NOT_FOUND = 'TEST_NOT_FOUND'
+};
+
+local function lut(reportHandler)
+
+    ---@class sreject.lut.state
+    local state = {
+        parent = nil;
+        type = 'group',
+        title = '',
+        children = {}
+    }
+    state.id = tostring(state);
+
+    local reporter;
+    if (reportHandler) then
+        reporter = reportHandler(state.id);
+    else
+        reporter = defaultReporter();
+    end
+
+    reporter(eventname.OPENED);
+
+    local function describe(title, callback)
+        local group = {
+            type = 'group',
+            parent = state,
+            title = title,
+            children = {}
+        };
+        group.id = tostring(group);
+        table.insert(state.children, group);
+        reporter(eventname.NEW_TEST_GROUP_OPEN, { parentid = state.id, id = group.id, index = #state.children, title = title });
+
+        if (callback ~= 'function') then
+            if (callback ~= nil) then
+                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { id = group.id, value = callback }});
+            end
+            group.callback = function () end
+        end
+
+        state = group;
+        callback();
+        state = group.parent;
+        reporter(eventname.NEW_TEST_GROUP_CLOSE, { parentid = state.id, id = group.id });
+    end;
+
+    local function it(title, callback)
+        local test = {
+            type = 'test',
+            parent = state.id,
+            title = title,
+            callback = callback
+        };
+        test.id = tostring(test);
+        table.insert(state.children, test);
+        reporter(eventname.NEW_UNIT_TEST, { parentid = state.id, id = test.id, index = #state.children, title = title });
+
+        if (callback ~= 'function') then
+            if (callback ~= nil) then
+                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { id = test.id, value = callback }});
+            end
+            test.callback = function () end
+        end
+    end;
+
+    local function test(...)
+        -- reset to root state element
+        while (state.parent ~= nil) do
+            state = state.parent --[[@as sreject.lut.state]];
+        end
+
+        reporter(eventname.CLOSED);
+        reporter(eventname.TESTING_START);
+
+        -- walk nested children until we arrive at the test-group indicated by parameters
+        local walk = {...};
+
+        local startIndex = 0;
+        for idx=1,#walk,1 do
+            if (state.type ~= 'group') then
+                reporter(eventname.ERROR, { type = errortypes.NOT_A_GROUP, args = { id = state.id } });
+                return;
+            end
+
+            local group = state.children;
+            local index = walk[idx];
+            if (type(index) == 'string') then
+                for i,v in ipairs(state.children) do
+                    if (v.title == index) then
+                        index = i;
+                        break;
+                    end
+                end
+                if (type(index) == 'string') then
+                    reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { id = state.id, type = 'title', index = index}});
+                    return;
+                end
+            else
+                index = idx;
+            end
+            if (state.children[index] == nil) then
+                reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { id = state.id, type = 'index', index = index }});
+                return;
+            end
+
+            -- report skipped groups/tests that occur before the targeted test(s)
+            for skipIndex=1,#state.children - 1,1 do
+                local child = group[skipIndex];
+                if (child.type == 'group') then
+                    reporter(eventname.TEST_GROUP_SKIPPED, { id = child.id, title = child.title });
+                else
+                    reporter(eventname.UNIT_TEST_SKIPPED, { id = child.id, title = child.title });
+                end
+            end
+
+            startIndex = index;
+            state = state.children[index];
+        end
+
+        if (state.type == 'group') then
+            if (state.parent ~= nil) then
+                reporter(eventname.TEST_GROUP_START, { id = state.id, title = state.title });
+            end
+            local function testChildren(children)
+                for i,child in next,children,nil do
+                    if (child.type == 'group') then
+                        reporter(eventname.TEST_GROUP_START, { id = child.id, title = child.title });
+                        testChildren(child.children);
+                        reporter(eventname.TEST_GROUP_END, { id = child.id });
+                    else
+                        reporter(eventname.UNIT_TEST_START, { id = child.id, title = child.title });
+                        local result = table.pack(pcall(child.callback));
+                        if (table.remove(result, 1) == true) then
+                            reporter(eventname.UNIT_TEST_END, { id = child.id, success = true, result = result, title = child.title });
+                        else
+                            reporter(eventname.UNIT_TEST_END, { id = child.id, success = false, result = result, title = child.title });
+                        end
+                    end
+                end
+            end
+            testChildren(state.children);
+
+            if (state.parent ~= nil) then
+                reporter(eventname.TEST_GROUP_END, { id = state.id });
+            end
+        else
+            reporter(eventname.UNIT_TEST_START, { id = state.id, title = state.title });
+            local result = table.pack(pcall(state.callback));
+            if (table.remove(result, 1) == true) then
+                reporter(eventname.UNIT_TEST_END, { id = state.id, success = true, result = result, title = state.title });
+            else
+                reporter(eventname.UNIT_TEST_END, { id = state.id, success = false, result = result, title = state.title });
+            end
+        end
+
+        if (startIndex > 0) then
+            -- report skipped groups/tests that occur after the targeted test(s)
+            while (true) do
+                if (startIndex < #state.children) then
+                    for idx=startIndex+1,#state.children,1 do
+                        local child = state.children[idx];
+                        if (child.type == 'group') then
+                            reporter(eventname.TEST_GROUP_SKIPPED, { id = child.id, title = child.title });
+                        else
+                            reporter(eventname.UNIT_TEST_SKIPPED, { id = child.id, title = child.title });
+                        end
+                    end
+                end
+                startIndex = 0;
+                if (state.parent == nil) then
                     break;
                 end
-                index = index + 1;
+                state = state.parent
             end
-            if (raise) then
-                error('returned value type('..type(results[index])..') did not equal expected type ('..args[index]..')');
-            end
-            return self;
         end
-    end
+        reporter(eventname.TESTING_END);
+    end;
+
+    return describe, it, test;
 end
 
----The expected result did not throw an error when it should have
-function Expect:toThrow()
-    if (self.errored ~= true) then
-        error("Did not throw an error when such was expected");
-    else
-        return self
-    end
-end
-
----The expected result threw an error would it should not
-function Expect:toNotThrow()
-    if (self.errored == true) then
-        error("Threw an error when such was not expected: " .. tostring(self.error[1]));
-    else
-        return true;
-    end
-end
-
----Creates an Expect instance from the result of `callback()`
----@param callback any
----@param isValue boolean? If true the input is taken as a literal value instead of a callback
----@return Expect
-local function expect(callback, isValue)
-    local results, success;
-    if (isValue ~= true and type(callback) == 'function') then
-        results = table.pack(pcall(callback));
-        success = results[1];
-        table.remove(results, 1);
-    else
-        success = true;
-        results = {callback}
-    end
-
-    local state;
-    if (success) then
-        state = {
-            errored = false,
-            results = results
-        }
-    else
-        state = {
-            errored = true,
-            error = results
-        }
-    end
-    return setmetatable(state, { __index = Expect });
-end
-
-return function()
-    term.clear();
-    term.setCursorPos(1,1);
-    local indent = -1;
-    local testGroup = {
-        parent = nil,
-        children = {};
-        count = 0,
-        pass = 0,
-        fail = 0,
-        messages = {},
-        cursor = {1,1}
-    };
-
-    ---Produces a new testing group
-    ---@param title string The testing group's title
-    ---@param callback fun():nil The testing group's body
-    local function describe(title, callback)
-        local groupStart = testGroup.cursor[2];
-
-        local messageGroup = {
-            parent = testGroup,
-            children = {},
-            count = 0,
-            pass = 0,
-            fail = 0,
-            messages = {},
-            cursor = {1, groupStart + 1}
-        };
-        table.insert(testGroup.children, messageGroup);
-        testGroup = messageGroup;
-        indent = indent + 1;
-
-        writeTitleBlock(indent, title, '?');
-
-
-        callback();
-
-
-        -- Update group header
-        term.setCursorPos(1, groupStart);
-        writeTitleBlock(indent, title, messageGroup.pass, messageGroup.fail, messageGroup.count);
-        if (messageGroup.fail > 0) then
-            for index,result in ipairs(messageGroup.messages) do
-                if (result.state == 1) then
-                    write((' '):rep((indent + 1) * 2));
-                    write('o', 'green');
-                    write((' %s'):format(result.title), 'lightGray');
-                else
-                    write((' '):rep((indent + 1) * 2));
-                    write('x', 'red');
-                    write((' %s'):format(result.title));
-                    -- TODO: write out error message
-                    local ignore,line = term.getCursorPos();
-                    term.setCursorPos((indent + 2) * 2 + 3, line + 1);
-                    write(result.error, 'red');
-                end
-                local ignore,line = term.getCursorPos();
-                term.setCursorPos(1, line + 1);
-            end
-            local ignore,line = term.getCursorPos();
-            term.setCursorPos(1, line + 1);
-        end
-
-        indent = indent - 1;
-        testGroup = testGroup.parent;
-        testGroup.cursor = table.pack(term.getCursorPos());
-    end
-
-    -- A singular test
-    ---@param title string The test's title
-    ---@param callback fun():nil The callback; it should raise an error if the test failed
-    local function it(title, callback)
-        indent = indent + 1;
-        testGroup.count = testGroup.count + 1;
-        local success,result = pcall(callback);
-        if (success) then
-            testGroup.pass = testGroup.pass + 1;
-            table.insert(testGroup.messages, {
-                title = title,
-                index = testGroup.count,
-                state = 1
-            });
-        else
-            testGroup.fail = testGroup.fail + 1;
-            table.insert(testGroup.messages, {
-                title = title,
-                index = testGroup.count,
-                state = 0,
-                error = result
-            });
-        end
-        indent = indent - 1;
-    end
-
-    return describe,it,expect;
-end
+return { lut = lut };
