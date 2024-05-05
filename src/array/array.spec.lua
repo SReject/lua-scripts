@@ -1,7 +1,7 @@
 package.path = package.path .. ";/?.lua;/?/init.lua"
 
 local describe,it,test = require('lut').lut();
-local expect = require('expect').expect();
+local expect = require('expect').expect;
 local Array = require('array');
 
 describe('Array.new()', function()
