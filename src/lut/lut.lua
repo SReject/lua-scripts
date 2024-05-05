@@ -32,7 +32,7 @@ local defaultReporter = function()
                 print(string.format('%s [ok] %s', string.rep('  ', indent), details.title));
             else
                 print(string.format('%s [error] %s', string.rep('  ', indent), details.title));
-                print(string.format('%s  ', string.rep('  ', indent), details.result.message));
+                print(string.format('%s  ', string.rep('  ', indent), details.result[1]));
             end
         elseif (eventname == 'UNIT_TEST_SKIPPED') then
             -- ignored
@@ -122,7 +122,6 @@ local function lut(reportHandler)
         test.id = tostring(test);
         table.insert(state.children, test);
         reporter(eventname.NEW_UNIT_TEST, { parentid = state.id, id = test.id, index = #state.children, title = title });
-
         if (type(callback) ~= 'function') then
             if (callback ~= nil) then
                 reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { message = "specified callback is invalid", id = test.id, value = callback }});
@@ -197,8 +196,9 @@ local function lut(reportHandler)
                         reporter(eventname.TEST_GROUP_END, { id = child.id });
                     else
                         reporter(eventname.UNIT_TEST_START, { id = child.id, title = child.title });
-                        local result = table.pack(pcall(child.callback));
-                        if (table.remove(result,1) == true) then
+
+                        local success,result = pcall(child.callback);
+                        if (success == true) then
                             reporter(eventname.UNIT_TEST_END, { id = child.id, success = true, result = result, title = child.title });
                         else
                             reporter(eventname.UNIT_TEST_END, { id = child.id, success = false, result = result, title = child.title });
@@ -213,10 +213,9 @@ local function lut(reportHandler)
             end
         else
             reporter(eventname.UNIT_TEST_START, { id = state.id, title = state.title });
-            local result = table.pack(pcall(state.callback));
-            if (table.remove(result,1) == true) then
+            local success,result pcall(state.callback);
+            if (success == true) then
                 reporter(eventname.UNIT_TEST_END, { id = state.id, success = true, result = result, title = state.title });
-
             else
                 reporter(eventname.UNIT_TEST_END, { id = state.id, success = false, result = result, title = state.title });
             end
