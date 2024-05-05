@@ -2,7 +2,11 @@
 local defaultReporter = function()
     local indent = -1;
     return function (eventname, details)
-        if (eventname == 'OPENED') then
+        if (eventname == nil) then
+            -- ignore
+        elseif (eventname == 'ERROR') then
+            -- ignore
+        elseif (eventname == 'OPENED') then
             -- ignored
         elseif (eventname == 'NEW_TEST_GROUP_OPEN') then
             -- ignored
@@ -12,9 +16,11 @@ local defaultReporter = function()
             -- ignored
         elseif (eventname == 'CLOSED') then
             -- ignored
+        elseif (eventname == 'TESTING_START') then
+            -- ignored
         elseif (eventname == 'TEST_GROUP_START') then
             indent = indent + 1;
-            print(string.format('%s%s', string.rep(' ', indent * 2), details.title));
+            print(string.format('%s%s', string.rep('  ', indent), details.title));
         elseif (eventname == 'TEST_GROUP_END') then
             indent = indent - 1;
         elseif (eventname == 'TEST_GROUP_SKIPPED') then
@@ -23,10 +29,10 @@ local defaultReporter = function()
             -- ignored
         elseif (eventname == 'UNIT_TEST_END') then
             if (details.success == true) then
-                print(string.format('%s [ok] %s', string.rep(' ', indent * 2), details.title));
+                print(string.format('%s [ok] %s', string.rep('  ', indent), details.title));
             else
-                print(string.format('%s [error] %s', string.rep(' ', indent * 2), details.title));
-                print(string.format('%s  ', string.rep(' ', indent * 2), details.result.message));
+                print(string.format('%s [error] %s', string.rep('  ', indent), details.title));
+                print(string.format('%s  ', string.rep('  ', indent), details.result.message));
             end
         elseif (eventname == 'UNIT_TEST_SKIPPED') then
             -- ignored
@@ -93,9 +99,9 @@ local function lut(reportHandler)
         table.insert(state.children, group);
         reporter(eventname.NEW_TEST_GROUP_OPEN, { parentid = state.id, id = group.id, index = #state.children, title = title });
 
-        if (callback ~= 'function') then
+        if (type(callback) ~= 'function') then
             if (callback ~= nil) then
-                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { id = group.id, value = callback }});
+                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { message = "specified callback is invalid", id = group.id, value = callback }});
             end
             group.callback = function () end
         end
@@ -103,7 +109,7 @@ local function lut(reportHandler)
         state = group;
         callback();
         state = group.parent;
-        reporter(eventname.NEW_TEST_GROUP_CLOSE, { parentid = state.id, id = group.id });
+        reporter(eventname.NEW_TEST_GROUP_CLOSED, { parentid = state.id, id = group.id });
     end;
 
     local function it(title, callback)
@@ -117,9 +123,9 @@ local function lut(reportHandler)
         table.insert(state.children, test);
         reporter(eventname.NEW_UNIT_TEST, { parentid = state.id, id = test.id, index = #state.children, title = title });
 
-        if (callback ~= 'function') then
+        if (type(callback) ~= 'function') then
             if (callback ~= nil) then
-                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { id = test.id, value = callback }});
+                reporter(eventname.ERROR, { type = errortypes.INVALID_CALLBACK, args = { message = "specified callback is invalid", id = test.id, value = callback }});
             end
             test.callback = function () end
         end
@@ -140,7 +146,7 @@ local function lut(reportHandler)
         local startIndex = 0;
         for idx=1,#walk,1 do
             if (state.type ~= 'group') then
-                reporter(eventname.ERROR, { type = errortypes.NOT_A_GROUP, args = { id = state.id } });
+                reporter(eventname.ERROR, { type = errortypes.NOT_A_GROUP, args = { message = "attempted referencing members within a non group", id = state.id } });
                 return;
             end
 
@@ -154,14 +160,14 @@ local function lut(reportHandler)
                     end
                 end
                 if (type(index) == 'string') then
-                    reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { id = state.id, type = 'title', index = index}});
+                    reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { message = "no test found", id = state.id, type = 'title', index = index}});
                     return;
                 end
             else
                 index = idx;
             end
             if (state.children[index] == nil) then
-                reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { id = state.id, type = 'index', index = index }});
+                reporter(eventname.ERROR, { type = errortypes.TEST_NOT_FOUND, args = { message = "no test found", id = state.id, type = 'index', index = index }});
                 return;
             end
 
@@ -192,7 +198,7 @@ local function lut(reportHandler)
                     else
                         reporter(eventname.UNIT_TEST_START, { id = child.id, title = child.title });
                         local result = table.pack(pcall(child.callback));
-                        if (table.remove(result, 1) == true) then
+                        if (table.remove(result,1) == true) then
                             reporter(eventname.UNIT_TEST_END, { id = child.id, success = true, result = result, title = child.title });
                         else
                             reporter(eventname.UNIT_TEST_END, { id = child.id, success = false, result = result, title = child.title });
@@ -208,8 +214,9 @@ local function lut(reportHandler)
         else
             reporter(eventname.UNIT_TEST_START, { id = state.id, title = state.title });
             local result = table.pack(pcall(state.callback));
-            if (table.remove(result, 1) == true) then
+            if (table.remove(result,1) == true) then
                 reporter(eventname.UNIT_TEST_END, { id = state.id, success = true, result = result, title = state.title });
+
             else
                 reporter(eventname.UNIT_TEST_END, { id = state.id, success = false, result = result, title = state.title });
             end
