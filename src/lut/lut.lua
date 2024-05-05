@@ -197,7 +197,8 @@ local function lut(reportHandler)
                     else
                         reporter(eventname.UNIT_TEST_START, { id = child.id, title = child.title });
 
-                        local success,result = pcall(child.callback);
+                        local result = table.pack(pcall(child.callback));
+                        local success = table.remove(result, 1);
                         if (success == true) then
                             reporter(eventname.UNIT_TEST_END, { id = child.id, success = true, result = result, title = child.title });
                         else
@@ -213,7 +214,8 @@ local function lut(reportHandler)
             end
         else
             reporter(eventname.UNIT_TEST_START, { id = state.id, title = state.title });
-            local success,result pcall(state.callback);
+            local result = table.pack(pcall(state.callback));
+            local success = table.remove(result, 1);
             if (success == true) then
                 reporter(eventname.UNIT_TEST_END, { id = state.id, success = true, result = result, title = state.title });
             else
