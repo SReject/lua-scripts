@@ -3,7 +3,7 @@
 ## Exports
 
 ### `expect(values...)`
-Returns a new [Expect instance](#expect%20instance) using the specified value(s) as the values to be validated.
+Returns a new [Expect instance](#expect-instance) using the specified value(s) as the values to be validated.
 ```lua
 ---@param ... any The literal values to be validated
 ---@return Expect
@@ -11,7 +11,7 @@ function expect(...) end
 ```
 
 ### `expectf(callback, ...)`
-Returns a new [Expect instance](#expect%20instance) using the result(s) of calling the callback function as the values to be validated.
+Returns a new [Expect instance](#expect-instance) using the result(s) of calling the callback function as the values to be validated.
 ```lua
 ---@param callback fun(...):any The callback function to call to retrieve values for validation
 ---@param ... any paramters to pass to the callback
@@ -20,9 +20,9 @@ function expectf(callback, ...) end
 ```
 
 ### `suspect(values...)`
-Returns a new [Expect instance](#expect%20instance) using the specified value(s) as the values to be validated.
+Returns a new [Expect instance](#expect-instance) using the specified value(s) as the values to be validated.
 
-Validation failure errors will be suppressed. The state of validation can be retrieved with [`instance:done()`](#instance:done)
+Validation failure errors will be suppressed. The state of validation can be retrieved with [`instance:done()`](#done)
 ```lua
 ---@param ... any The literal values to be validated
 ---@return Expect
@@ -30,9 +30,9 @@ function suspect(...) end
 ```
 
 ### `suspectf(callback, ...)`
-Returns a new [Expect instance](#expect%20instance) using the result(s) of calling the callback function as the values to be validated.
+Returns a new [Expect instance](#expect-instance) using the result(s) of calling the callback function as the values to be validated.
 
-Validation failure errors will be suppressed. The state of validation can be retrieved with [`instance:done()`](#instance:done)
+Validation failure errors will be suppressed. The state of validation can be retrieved with [`instance:done()`](#done)
 ```lua
 ---@param callback fun(...):any The callback function to call to retrieve values for validation
 ---@param ... any paramters to pass to the callback
@@ -41,7 +41,7 @@ function suspectf(callback, ...) end
 ```
 
 ### `Mock(callback)`
-Wraps the specified function so that calls to it will be tracked and returns a [`Mock Instance`](#mock%20instance);
+Wraps the specified function so that calls to it will be tracked and returns a [`Mock Instance`](#mock-instance);
 ```lua
 ---@param callback any|fun(...):any The callback to wrap. If the value is not a function, a function that returns the given value will be used
 ---@return Mock
@@ -51,7 +51,38 @@ function mock(callback)
 ### `consts`
 A dictionary of metavalues/functions that can be used to alter how validation is handled
 
-See [Metavalues](#metavalues) for more information
+#### `consts.ignore()`
+Indicates that validation of the cooresponding value to be tested should be skipped
+
+```lua
+---@return Expect.metavalue.ignore
+function consts.ignore() end
+```
+
+#### `consts.ignoreRest()`
+Indicates that validation of the remaining values to be tested should be skipped
+
+```lua
+---@return Expect.metavalue.ignore
+function consts.ignoreRest() end
+```
+
+#### `consts.any(values...)`
+Indicates validation of the cooresponding value may pass if any of the given values result in the test passing
+
+```lua
+---@param ... any A selection of values
+---@return Expect.metavalue.any
+function consts.any(values) end
+```
+
+#### `consts.all(value)`
+Indicates that validation should use the singular given value as the expected value for the test
+```lua
+---@param value any
+---@return Expect.metavalue.all
+function consts.all(value) end
+```
 
 ## Expect Instances
 Instances of Expect may have the following methods.
@@ -79,9 +110,9 @@ function Expect:doesnt() end
 Compares each actual value against the cooresponding parameter
 
 May throw:
-- [`INIT_FAILED`](#INIT_FAILED)
-- [`EXPECTED_EQUAL`](#EXPECTED_EQUAL)
-- [`EXPECTED_NOT_EQUAL`](#EXPECTED_NOT_EQUAL)
+- [`INIT_FAILED`](#init_failed)
+- [`EXPECTED_EQUAL`](#expected_equal)
+- [`EXPECTED_NOT_EQUAL`](#expected_not_equal)
 
 ```lua
 ---@param ... any The cooresponding value to compare against
@@ -96,9 +127,9 @@ function Expect:toNotEqual(...) end
 Compares each actual value's `type()` against the cooresponding parameter
 
 May throw:
-- [`INIT_FAILED`](#INIT_FAILED)
-- [`EXPECTED_TYPE_OF`](#EXPECTED_TYPE_OF)
-- [`EXPECTED_NOT_TYPE_OF`](#EXPECTED_NOT_TYPE_OF)
+- [`INIT_FAILED`](#init_failed)
+- [`EXPECTED_TYPE_OF`](#expected_type_of)
+- [`EXPECTED_NOT_TYPE_OF`](#expected_not_type_of)
 
 ```lua
 ---@param ... string|all|any The cooresponding type to compare against
@@ -112,9 +143,9 @@ function Expect:toNotBe(...) end
 Compares each actual value's `getmetatable().__index` against the cooresponding parameter
 
 May throw:
-- [`INIT_FAILED`](#INIT_FAILED)
-- [`EXPECTED_INSTANCE_OF`](#EXPECTED_INSTANCE_OF)
-- [`EXPECTED_NOT_INSTANCE_OF`](#EXPECTED_NOT_INSTANCE_OF)
+- [`INIT_FAILED`](#init_failed)
+- [`EXPECTED_INSTANCE_OF`](#expected_instance_of)
+- [`EXPECTED_NOT_INSTANCE_OF`](#expected_not_instance_of)
 
 ```lua
 ---@param ... any The cooresponding metatable value to compare against
@@ -126,7 +157,7 @@ function Expect:as(...) end
 Calls the callback for each actual value and assumes validation passes if the callback returns `true` otherwise it assumes failure
 
 May Throw:
-- [`INIT_FAILED`](#INIT_FAILED)
+- [`INIT_FAILED`](#init_failed)
 
 ```lua
 ---@param callback fun(value: any, index: number, state: table): boolean
@@ -138,8 +169,8 @@ function Expect:validate(callback) end
 Requires that the attempt to get initial values resulted in an error being thrown
 
 May throw:
-- [`EXPECTED_TO_THROW`](#EXPECTED_TO_THROW)
-- [`EXPECTED_NOT_TO_THROW`](#EXPECTED_NOT_TO_THROW)
+- [`EXPECTED_TO_THROW`](#expected_to_throw)
+- [`EXPECTED_NOT_TO_THROW`](#expected_not_to_throw)
 
 ```lua
 ---@return Expect
@@ -152,10 +183,10 @@ function Expect:toNotThrow() end
 ### `done()`
 Returns the current state of validation; `true` if passing, `false` if not
 
-Only applicable to Expect instances created with [`suspect()`](#suspect()) or [`suspectf()`](#suspect())
+Only applicable to Expect instances created with [`suspect()`](#suspectvalues) or [`suspectf()`](#suspectfcallback-)
 
 May Throw:
-- ['NOT_SUPPRESSED'](#NOT_SUPPRESSED)
+- [`NOT_SUPPRESSED`](#not_suppressed)
 
 ```lua
 ---@return boolean
@@ -168,7 +199,7 @@ function Expect:done() end
 Returns a clone of the current Expect instance after updating its values to only include those at the specified indexes
 
 May Throw:
-- [`INIT_FAILED`](#INIT_FAILED)
+- [`INIT_FAILED`](#init_failed)
 
 ```lua
 ---@param ... number The indexes to include
@@ -179,7 +210,7 @@ function Expect:sub(...) end
 Returns a clone of the current Expect instance after updating its values to that of the initialization error and reseting the 'errored' flag to false(indicating success)
 
 May Throw:
-- [`INIT_SUCCEEDED`](#INIT_SUCCEEDED)
+- [`INIT_SUCCEEDED`](#init_succeeded)
 
 ```lua
 ---@return Expect
@@ -190,8 +221,8 @@ function Expect:suberror() end
 Returns a child clone's original Expect instance
 
 May Throw:
-- [`INIT_SUCCEEDED`](#INIT_SUCCEEDED)
-- [`NO_PARENT](#NO_PARENT)
+- [`INIT_FAILED`](#init_failed)
+- [`NO_PARENT](#no_parent)
 
 ```lua
 ---@return Expect
@@ -224,7 +255,7 @@ local Mock.fn
 ### `.calls`
 The current list of calls made to the mock function
 
-`#instance.calls` can be used to retrieve the number of times the mock function has been called
+`#<instance>.calls` can be used to retrieve the number of times the mock function has been called
 
 ```lua
 ---@class Mock.call
@@ -234,42 +265,6 @@ The current list of calls made to the mock function
 
 ---@type Mock.call[]
 local Mock.call
-```
-
-## Meta values
-Meta values (not to be confused with meta-anything in lua) are values that represent abstract notions or alter how validation is handled
-
-### `consts.ignore()`
-Indicates that validation of the cooresponding value to be tested should be skipped
-
-```lua
----@return Expect.metavalue.ignore
-function consts.ignore() end
-```
-
-### `consts.ignoreRest()`
-Indicates that validation of the remaining values to be tested should be skipped
-
-```lua
----@return Expect.metavalue.ignore
-function consts.ignoreRest() end
-```
-
-### `consts.any(values...)`
-Indicates validation of the cooresponding value may pass if any of the given values result in the test passing
-
-```lua
----@param ... any A selection of values
----@return Expect.metavalue.any
-function consts.any(values) end
-```
-
-### `consts.all(value)`
-Indicates that validation should use the singular given value as the expected value for the test
-```lua
----@param value any
----@return Expect.metavalue.all
-function consts.all(value) end
 ```
 
 ## Errors
