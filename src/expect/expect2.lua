@@ -573,11 +573,31 @@ local function any(...)
     return result;
 end
 
+local function Mock(fn)
+    local mocked = { calls = {} };
+    function mocked.fn(...)
+        local callInfo = {
+            args = table.pack(...);
+        }
+        table.insert(mocked.calls, callInfo);
+        local success,result = tpcall(fn, ...);
+        callInfo.success = success;
+        callInfo.result = result;
+        if (success == true) then
+            return table.unpack(result);
+        else
+            error(result,2);
+        end
+    end;
+    return mocked
+end;
+
 return {
     expect = expect,
     expectf = expectf,
     suspect = suspect,
     suspectf = suspectf,
+    Mock = Mock,
     consts = {
         ignore = ignore,
         ignoreRest = ignoreRest,
