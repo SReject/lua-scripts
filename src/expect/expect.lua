@@ -153,8 +153,11 @@ function Expect:isnt()
     return self;
 end
 
----@diagnostic disable-next-line inject-field
-Expect.doesnt = Expect.isnt;
+---Negates (reverses) the result of the next check
+---@return sreject.Expect # The current Expect instance
+function Expect:doesnt()
+    return self:isnt()
+end
 
 ---Create a new child Expect instance from values at the given indexes of the current instance
 ---
@@ -228,7 +231,7 @@ end
 ---
 ---Negatable
 ---
----Throws: `INIT_FAILED` - (*fatal*) `:equal()` cannot be used when the initial retrieval of values failed
+---Throws: `INIT_FAILED` - (*fatal*) `:equal()s` cannot be used when the initial retrieval of values failed
 ---
 ---Throws: `EXPECTED_EQUAL` - An actual value did not equal the corresponding expected value
 ---
@@ -273,12 +276,45 @@ function Expect:equals(...)
     end
 end
 
----@diagnostic disable-next-line inject-field
-Expect.equal = Expect.equals;
+---Equality check via comparing the actual value against the corresponding expected value
+---
+---Negatable
+---
+---Throws: `INIT_FAILED` - (*fatal*) `:equal()` cannot be used when the initial retrieval of values failed
+---
+---Throws: `EXPECTED_EQUAL` - An actual value did not equal the corresponding expected value
+---
+---Throws: `EXPECTED_NOT_EQUAL` - When negated, an actual value equalled the corresponding expected value
+---@param ... any The corresponding type to test the actual values against
+---@return sreject.Expect
+function Expect:equal(...)
+    return self:equals(...);
+end
 
----@deprecated
+---Equality check via comparing the actual value against the corresponding expected value
+---
+---Negatable
+---
+---Throws: `INIT_FAILED` - (*fatal*) `:equal()` cannot be used when the initial retrieval of values failed
+---
+---Throws: `EXPECTED_EQUAL` - An actual value did not equal the corresponding expected value
+---
+---Throws: `EXPECTED_NOT_EQUAL` - When negated, an actual value equalled the corresponding expected value
+---@param ... any The corresponding type to test the actual values against
+---@return sreject.Expect
 function Expect:toEqual(...)
     return self:equals(...);
+end
+
+---Negated equality check via comparing the actual value against the corresponding expected value
+---
+---Throws: `INIT_FAILED` - (*fatal*) `:equal()` cannot be used when the initial retrieval of values failed
+---
+---Throws: `EXPECTED_NOT_EQUAL` - An actual value equalled the corresponding expected value
+---@param ... any The corresponding type to test the actual values against
+---@return sreject.Expect
+function Expect:toNotEqual(...)
+    return self:isnt():equals(...);
 end
 
 ---Type check via comparing the result of calling `type()` for each actual value against the corresponding expected value
@@ -327,7 +363,17 @@ function Expect:of(...)
     end
 end
 
----@deprecated
+---Type check via comparing the result of calling `type()` for each actual value against the corresponding expected value
+---
+---Negatable
+---
+---Throws: `INIT_FAILED` - (*fatal*) `:toBe()` cannot be used when the initial retrieval of values failed
+---
+---Throws: `EXPECTED_TYPE_OF` - The stored values' types did not equal those that were expected
+---
+---Throws: `EXPECTED_NOT_TYPE_OF` - When negated, the stored values' types did equal those that were expected
+---@param ... string|string|sreject.Expect.metavalue.all|sreject.Expect.metavalue.any The corresponding type to test the actual values against
+---@return sreject.Expect
 function Expect:toBe(...)
     return self:of(...);
 end
@@ -423,12 +469,35 @@ function Expect:throws()
     return self;
 end
 
----@diagnostic disable-next-line inject-field
-Expect.throw = Expect.throws;
+---Requires that the input threw an error
+---
+---Negatable
+---
+---Throws: `EXPECTED_TO_THROW` - The retrieval of initial values failed to throw an expected error
+---
+---Throws: `EXPECTED_NOT_TO_THROW` - When negated, the retrieval of initial values threw an unexpected error
+function Expect:throw()
+    return self:throws();
+end
 
----@deprecated
+---Requires that the input threw an error
+---
+---Negatable
+---
+---Throws: `EXPECTED_TO_THROW` - The retrieval of initial values failed to throw an expected error
+---
+---Throws: `EXPECTED_NOT_TO_THROW` - When negated, the retrieval of initial values threw an unexpected error
 function Expect:toThrow()
     return self:throws();
+end
+
+---Expects retrieval of initial values not to throw an error
+---
+---Negatable
+---
+---Throws: `EXPECTED_NOT_TO_THROW` - The retrieval of initial values threw an unexpected error
+function Expect:toNotThrow()
+    return self:isnt():throws();
 end
 
 ---Requires the instance's actual values to pass a given validation function
@@ -436,6 +505,10 @@ end
 ---Negatable
 ---
 ---Throws: `INIT_FAILED` - (*fatal*) `:validate()` cannot be used when the initial retrieval of values failed
+---
+---Throws: `EXPECTED_VALIDATE` - actual values did not pass the provided callback
+---
+---Throws: `EXPECTED_NOT_VALIDATE` - actual values passed the provided callback when they should not have
 ---@param callback fun(value: any, index: number, state: table):boolean
 ---@return sreject.Expect
 function Expect:validate(callback)
@@ -470,14 +543,14 @@ function Expect:validate(callback)
                 self.result = false;
             elseif (negated) then
                 error({
-                    type = 'EXPECTED_VALIDATE_FAILURE',
+                    type = 'EXPECTED_VALIDATE',
                     message = 'actual value(s) passed the specified validation function',
                     description = 'The instance\'s actual values passed the validatation function when it was indicated they should not have',
                     details = { passed = pass, negated = negated, index = index }
                 })
             else
                 error({
-                    type = 'EXPECTED_VALIDATE_SUCCESS',
+                    type = 'EXPECTED_NOT_VALIDATE',
                     message = 'actual value(s) failed to passed the specified validation function',
                     description = 'The instance\'s actual values\' failed to pass the specified validation function',
                     details = { pass = pass, negated = negated, index = index }
@@ -503,16 +576,6 @@ function Expect:done()
     return self.result;
 end
 
----@deprecated
-function Expect:toNotEqual(...)
-    return self:isnt():equals(...);
-end
-
----@deprecated
-function Expect:toNotThrow()
-    return self:isnt():throws();
-end
-
 ---Creates an Expect instance using provided values as the base value
 ---@param ... any Values to use as the base value
 ---@return sreject.Expect
@@ -531,6 +594,14 @@ end
 ---@param callback any The function to call to get the base value
 ---@return sreject.Expect
 local function expectf(callback, ...)
+    if (type(callback) ~= 'function') then
+        error({
+            type = 'INVALID_CALLBACK',
+            message = 'callback required to be a function',
+            description = 'A specified callback is not a function'
+        });
+    end
+
     local success, value = tpcall(callback, ...);
     return setmetatable({
         parent = false,
@@ -566,6 +637,14 @@ end
 ---@param callback any The function to call to get the base value
 ---@return sreject.Expect
 local function suspectf(callback, ...)
+    if (type(callback) ~= 'function') then
+        error({
+            type = 'INVALID_CALLBACK',
+            message = 'callback required to be a function',
+            description = 'A specified callback is not a function'
+        });
+    end
+
     local success, value = tpcall(callback, ...);
     return setmetatable({
         parent = false,
