@@ -607,4 +607,4 @@ function Array:buffer()
     }) --[[@as sreject.ArrayMethodBuffer]];
 end
 
-return Array;
+return { Array = Array };
