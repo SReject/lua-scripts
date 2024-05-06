@@ -238,13 +238,18 @@ function Array:join(delimiter, callback)
         if (callback) then
             toStr = function (value, index, array)
                 local result = callback(value, index, array);
-                if (type(result) ~= 'string') then
+                if (result == nil) then
+                    result = '';
+                elseif (type(result) ~= 'string') then
                     result = tostring(result);
                 end
                 return result;
             end;
         else
             toStr = function (value)
+                if (value == nil) then
+                    return '';
+                end
                 return tostring(value);
             end
         end
