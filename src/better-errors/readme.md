@@ -54,9 +54,9 @@ function BetterErrors.throw(error) end
 ## Error Instance
 Represents a BetterErrors error instance.
 
-Instances have the following properties
+Instances have the following properties, though more may be added after creation
 
-#### .type
+#### `.type`
 The error type as specified when the instance was created; eg `GENERIC_ERROR'
 
 ```lua
@@ -64,7 +64,7 @@ The error type as specified when the instance was created; eg `GENERIC_ERROR'
 local Error.type;
 ```
 
-#### .message
+#### `.message`
 The message accompanying the error
 
 ```lua
@@ -72,7 +72,7 @@ The message accompanying the error
 local Error.message?;
 ```
 
-#### .stacktrace
+#### `.stacktrace`
 The stack trace of the thrown error. Only applicable if the error has been passed to `throw()`
 
 ```lua
