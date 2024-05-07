@@ -1,9 +1,9 @@
-# Better Error
+# Better Errors
 Adds better error instancing than what is provided by Lua
 
 # Example
 ```lua
-local BetterError = require('better-error');
+local BetterError = require('better-errors');
 
 -- When called, creates a new BetterError error instance
 local Error = BetterError.Error.new;
@@ -17,3 +17,6 @@ local myError = Error('MY_ERROR_TYPE', { message = 'I did an error' })
 -- Raise the error
 error(myError);
 ```
+
+# Usage
+todo >.>

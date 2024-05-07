@@ -1,1 +1,1 @@
-return require('better-error');
+return require('better-errors');
