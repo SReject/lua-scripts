@@ -1,38 +1,53 @@
 local exports = {};
 
-local BetterError = {};
-exports.Error = BetterError;
+local BetterErrorsInstanceIndex = {};
 
-function BetterError.new(errtype, data)
+---@class sreject.BetterErrors.stackTraceItem
+---@field name string The calling function's name
+---@field source string The source file
+---@field line number The line of `source`
+---@field column number the column in `line`
+
+---@class sreject.BetterErrors.Error
+---@field type string
+---@field message string?
+---@field stacktrace sreject.BetterErrors.stackTraceItem[]?
+---@field [any] any
+
+local BetterErrors = {};
+exports.Error = BetterErrors;
+
+---Creates a new BetterErrors Error instance
+---@param errtype string The error type
+---@param data {[any]: any}? Data to append to the error
+---@return sreject.BetterErrors.Error
+function exports.new(errtype, data)
+
     if (type(errtype) ~= 'string' or errtype == '') then
-        BetterError.throw(BetterError.new('INVALID_ERROR_TYPE', 2));
+        BetterErrors.throw(BetterErrors.new('INVALID_ERROR_TYPE'), 2);
     end
 
     local instance = setmetatable({ type = errtype }, {
-        __index = BetterError,
+        __index = BetterErrorsInstanceIndex,
         __tostring = function(self)
-            if (getmetatable(self).__index ~= BetterError) then
-                BetterError.throw(BetterError.new('INVALID_ERROR_TYPE', 2));
+            if (getmetatable(self).__index ~= BetterErrorsInstanceIndex) then
+                BetterErrors.throw(BetterErrors.new('INVALID_ERROR_TYPE'), 2);
             end
-
             local result = self.type;
             if (self.message) then
                 result = result .. ': ' .. self.message
             end
-            for i,stack in next, self.stacktrace, nil do
-                result = result .. string.format('\n  at %s (%s:%s:%s)',
-                    stack.name,
-                    stack.source,
-                    stack.line,
-                    stack.column
-                );
+            if (self.stacktrace) then
+                for i,stack in next, self.stacktrace, nil do
+                    result = result .. string.format('\n  at %s (%s:%s:%s)', stack.name, stack.source, stack.line, stack.column);
+                end
             end
             return result;
         end
     });
     if (type(data) == 'table') then
         for i,k in next, data, nil do
-            if (i ~= 'type' and i ~= 'stack') then
+            if (i ~= 'type' and i ~= 'stacktrace') then
                 instance[i] = k;
             end
         end
@@ -40,26 +55,45 @@ function BetterError.new(errtype, data)
     return instance;
 end
 
-function BetterError.wrap(errtype, data)
+---Creates a wrapping function that provides defaults for a BetterErrors Error
+---instance
+---@param errtype string The error type
+---@param defaults {[any]: any}? default values to apply to the error instance
+---@return (fun(data: {[any]:any}?): sreject.BetterErrors.Error) # Function to create a new error using the given defaults
+function exports.wrap(errtype, defaults)
     if (type(errtype) ~= 'string' or errtype == '') then
-        BetterError.throw(BetterError.new('INVALID_ERROR_TYPE', 2));
+        BetterErrors.throw(BetterErrors.new('INVALID_ERROR_TYPE'), 2);
     end
-    return function(message)
-        if (message ~= nil and type(message) ~= 'string') then
-            BetterError.throw(BetterError.new('INVALID_MESSAGE_TYPE', 2));
+
+    ---Creates a new BetterErrors Error instance
+    ---@param data {[any]:any}? Data to apply to the error
+    ---@return sreject.BetterErrors.Error # A new BetterErrors Error instance
+    return function(data)
+        local err = BetterErrors.new(errtype, defaults);
+        if (type(data) == 'string') then
+            err.message = data;
+        elseif(type(data) == 'table') then
+            for key,value in next, data, nil do
+                if (key ~= 'type' and key ~= 'stacktrace') then
+                    err[key] = value;
+                end
+            end
         end
-        local err = BetterError.new(errtype, data);
-        err.message = message or '';
+        return err;
     end
 end
 
+---Raises an error
+---@param err any The error to throw, if `err` is a string a generic BetterError Error is created and `err` is used as the message; Other non- BetterError Error instance inputs are raised as-is
+---@param level number? The index to start at when compiling the stack trace(defaults to 1; indicating the beginning)
 function exports.throw(err, level)
+
     if (type(err) == 'string') then
         -- TODO: Attempt to exact file:line:column info from error
-        err = BetterError.new('Error', { message = err });
+        err = BetterErrors.new('Error', { message = err });
     end
 
-    if (getmetatable(err).__index == BetterError) then
+    if (getmetatable(err).__index == BetterErrorsInstanceIndex) then
 
         -- determine where to start the stack trace at
         if (type(level) ~= 'number' or level < 1) then
@@ -100,13 +134,7 @@ function exports.throw(err, level)
                 stColumn = -1;
             end
 
-            local entry = {
-                source = stSource,
-                line = stLine,
-                column = stColumn,
-                name = stName
-            }
-
+            local entry = { source = stSource, line = stLine, column = stColumn, name = stName };
             table.insert(stack, entry);
 
             id = id + 1;
