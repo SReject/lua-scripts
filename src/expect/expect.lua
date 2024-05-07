@@ -1,3 +1,9 @@
+package.path = package.path .. ";/?.lua;/?/init.lua"
+
+local BetterErrors = require('better-errors');
+local Error = BetterErrors.new;
+local error = BetterErrors.throw;
+
 ---@class (exact) sreject.Expect.metavalue.all
 
 ---@class (exact) sreject.Expect.metavalue.any
@@ -166,13 +172,7 @@ end
 ---@return sreject.Expect Child # A new Expect instance
 function Expect:sub(...)
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'sub\' in cases were retrieval of initial values failed',
-            description = '\'sub\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
-
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     else
         local indexes, values = {...}, {};
         for i=1,#indexes,1 do
@@ -189,12 +189,7 @@ end
 ---@return sreject.Expect Child
 function Expect:suberror()
     if (self.success == true) then
-        error({
-            type = 'INIT_SUCCEEDED',
-            message = 'cannot use \'error\' in cases were retrieval of initial values did not raise an error',
-            description = '\'error\' cannot be used when the function to get initial values did not result in an error',
-            details = {}
-        });
+        error(Error('INIT_SUCCEEDED', { message = 'cannot be used if initial retrieval of values is successful'}));
     else
         return subcopy(self, { parent = self, success = true });
     end
@@ -208,20 +203,9 @@ end
 ---@return sreject.Expect Parent # The parent Expect instance
 function Expect:sup()
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'sup\' in cases were retrieval of initial values failed',
-            description = '\'sup\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
-
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     elseif (self.parent == nil) then
-        error({
-            type = 'NO_PARENT',
-            message = 'instance is not a child of a parent Expect instance',
-            description = 'Only instances created with :sub() and :suberror() are able to return to the parent instance',
-            details = {}
-        });
+        error(Error('NO_PARENT', { message = 'current instance does not have a parent' }));
     else
         return self.parent;
     end
@@ -240,16 +224,9 @@ end
 ---@return sreject.Expect
 function Expect:equals(...)
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'equals\' in cases were retrieval of initial values failed',
-            description = '\'equals\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
-
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     elseif (self.suppress and self.result == false) then
         return self;
-
     else
         local test = validate(self, function (self, index, expect, actual) return expect == actual end, table.pack(...))
         if (test.passed == false) then
@@ -257,19 +234,9 @@ function Expect:equals(...)
                 self.result = false;
 
             elseif (test.negated) then
-                error({
-                    type = 'EXPECTED_NOT_EQUAL',
-                    message = 'actual value(s) were equal to the expected value(s)',
-                    description = 'The instance\'s actual values were equal to that of the coorsponding expected value when they should not have',
-                    details = test
-                });
+                error(Error('EXPECTED_NOT_EQUAL', { message = 'actual value(s) are equal to expected values'}));
             else
-                error({
-                    type = 'EXPECTED_EQUAL',
-                    message = 'actual value(s) were not equal to the expected value(s)',
-                    description = 'The instance\'s actual values were not equal to that of the corresponding expected value',
-                    details = test
-                });
+                error(Error('EXPECTED_EQUAL', { message = 'actual value(s) are not equal to expect values'}));
             end
         end
         return self;
@@ -330,12 +297,7 @@ end
 ---@return sreject.Expect
 function Expect:of(...)
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'of\' in cases were retrieval of initial values failed',
-            description = '\'of\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     elseif (self.suppress and self.result == false) then
         return self;
     else
@@ -344,19 +306,9 @@ function Expect:of(...)
             if (self.suppress) then
                 self.result = false;
             elseif (test.negated) then
-                error({
-                    type = 'EXPECTED_NOT_TYPE_OF',
-                    message = 'actual value(s) were of the expected type value(s)',
-                    description = 'The instance\'s actual values\' type() equalled those of the coorsponding expected value when they should not have.',
-                    details = test
-                })
+                error(Error('EXPECTED_NOT_TYPE_OF', { message = 'actual value(s) were of expected type value'}));
             else
-                error({
-                    type = 'EXPECTED_TYPE_OF',
-                    message = 'actual value(s) were not of the expected type value(s)',
-                    description = 'The instance\'s actual values\' type() did not equal those of the coorsponding expected value',
-                    details = test
-                })
+                error(Error('EXPECTED_NOT_TYPE_OF', { message = 'actual value(s) were not of expected type value'}));
             end
         end
         return self;
@@ -391,12 +343,7 @@ end
 ---@return sreject.Expect
 function Expect:as(...)
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'a\' in cases were retrieval of initial values failed',
-            description = '\'a\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     elseif (self.suppress and self.result == false) then
         return self;
     else
@@ -411,19 +358,9 @@ function Expect:as(...)
             if (self.suppress) then
                 self.result = false;
             elseif (test.negated) then
-                error({
-                    type = 'EXPECTED_NOT_INSTANCE_OF',
-                    message = 'actual value(s) were instances of expected value(s)',
-                    description = 'The instance\'s actual values\' metatable.__index equalled the coorsponding expected value when it should not have',
-                    details = test
-                })
+                error(Error('EXPECTED_NOT_INSTANCE_OF', { message = 'actual value(s) were instances of expected value'}));
             else
-                error({
-                    type = 'EXPECTED_INSTANCE_OF',
-                    message = 'actual value(s) were not instances of expected value(s)',
-                    description = 'The instance\'s actual values\' metatable.__index did not equal those of the coorsponding expected value',
-                    details = test
-                })
+                error(Error('EXPECTED_INSTANCE_OF', { message = 'actual value(s) were not instances of expected value'}));
             end
         end
         return self;
@@ -451,19 +388,9 @@ function Expect:throws()
         if (self.suppress) then
             self.result = false;
         elseif (negated) then
-            error({
-                type = 'EXPECTED_TO_THROW',
-                message = 'instance did not throw an error',
-                description = 'The instance did not throw an error and it was indicated it should have',
-                details = { data = self.value }
-            });
+            error(Error('EXPECTED_TO_THROW', { message = 'retrevial of actual value(s) did not raise an error'}));
         else
-            error({
-                type = 'EXPECTED_NOT_TO_THROW',
-                message = 'instance threw an unexpected error',
-                description = 'The instance threw an error and it was indicated that it should not have',
-                details = { data = self.value }
-            });
+            error(Error('EXPECTED_NOT_TO_THROW', { message = 'retrieval of actual value(s) raised an error'}));
         end
     end
     return self;
@@ -513,12 +440,7 @@ end
 ---@return sreject.Expect
 function Expect:validate(callback)
     if (self.success == false) then
-        error({
-            type = 'INIT_FAILED',
-            message = 'cannot use \'validate\' in cases were retrieval of initial values failed',
-            description = '\'validate\' cannot be used when the function to get initial values resulted in an error',
-            details = {}
-        });
+        error(Error('INIT_FAILED', { message = 'retrieves of initial values failed' }));
     elseif (self.suppress and self.result == false) then
         return self;
     else
@@ -542,19 +464,9 @@ function Expect:validate(callback)
             if (self.suppress) then
                 self.result = false;
             elseif (negated) then
-                error({
-                    type = 'EXPECTED_VALIDATE',
-                    message = 'actual value(s) passed the specified validation function',
-                    description = 'The instance\'s actual values passed the validatation function when it was indicated they should not have',
-                    details = { passed = pass, negated = negated, index = index }
-                })
+                error(Error('EXPECTED_NOT_VALIDATE', { message = 'actual value(s) passsed validation callback' }));
             else
-                error({
-                    type = 'EXPECTED_NOT_VALIDATE',
-                    message = 'actual value(s) failed to passed the specified validation function',
-                    description = 'The instance\'s actual values\' failed to pass the specified validation function',
-                    details = { pass = pass, negated = negated, index = index }
-                })
+                error(Error('EXPECTED_VALIDATE', { message = 'actual value(s) did not pass validation callback' }));
             end
         end
         return self;
@@ -567,11 +479,7 @@ end
 ---@return boolean
 function Expect:done()
     if (self.suppress ~= true) then
-        error({
-            type = 'NOT_SUPPRESSED',
-            message = 'instance is not suppressed',
-            description = 'The instance does not have error suppression enabled'
-        });
+        error(Error('NOT_SUPPRESSED', { message = 'instance does not have raising errors suppressed' }));
     end
     return self.result;
 end
@@ -595,11 +503,7 @@ end
 ---@return sreject.Expect
 local function expectf(callback, ...)
     if (type(callback) ~= 'function') then
-        error({
-            type = 'INVALID_CALLBACK',
-            message = 'callback required to be a function',
-            description = 'A specified callback is not a function'
-        });
+        error(Error('INVALID_CALLBACK', { message = 'callback is not a function' }));
     end
 
     local success, value = tpcall(callback, ...);
@@ -638,11 +542,7 @@ end
 ---@return sreject.Expect
 local function suspectf(callback, ...)
     if (type(callback) ~= 'function') then
-        error({
-            type = 'INVALID_CALLBACK',
-            message = 'callback required to be a function',
-            description = 'A specified callback is not a function'
-        });
+        error(Error('INVALID_CALLBACK', { message = 'callback is not a function' }));
     end
 
     local success, value = tpcall(callback, ...);
