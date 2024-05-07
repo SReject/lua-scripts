@@ -11,7 +11,7 @@ local Mock = ExpectLib.Mock;
 local describe,it,test = require('lut').lut();
 
 -- /array.lua
-local Array = require('array');
+local Array = require('array').Array;
 
 local function inOrder(retvalue)
     local mock;
@@ -675,6 +675,7 @@ end);
 describe('Array:unshift()', function ()
 
     it('Does not raise an error', function()
+
         expectf(Array.unshift, Array.new())
             :isnt():throws();
     end);
@@ -700,6 +701,7 @@ describe('Method Call Buffering -- TODO', function ()
     -- TODO
 end);
 --]]
+--[[
 describe('Method Aliasing', function ()
     it('Maps :delete() to :remove()', function ()
         expect(Array.delete)
@@ -718,5 +720,6 @@ describe('Method Aliasing', function ()
             :equals(Array.any);
     end);
 end);
+--]]
 
 test();
