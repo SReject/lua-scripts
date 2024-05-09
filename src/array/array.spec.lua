@@ -4,11 +4,9 @@ package.path = package.path .. ";/?.lua;/?/init.lua"
 local ExpectLib = require('expect.expect');
 local expect = ExpectLib.expect;
 
---#region hide for screenshot
 local expectf = ExpectLib.expectf;
 local ignore = ExpectLib.consts.ignore();
 local Mock = ExpectLib.Mock;
-
 
 -- /array.lua
 local Array = require('array').Array;
@@ -37,7 +35,6 @@ describe('Array.new()', function()
             :equals(1,2,3);
     end);
 
-    --#endregion hide for screenshot
     it('Values are retrievable', function ()
         expect(Array.new(1,2,3)[2])
             :equals(2);
