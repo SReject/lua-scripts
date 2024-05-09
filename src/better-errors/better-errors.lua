@@ -30,7 +30,7 @@ function exports.new(errtype, data)
     local instance = setmetatable({ type = errtype }, {
         __index = BetterErrorsInstanceIndex,
         __tostring = function(self)
-            if (getmetatable(self).__index ~= BetterErrorsInstanceIndex) then
+            if (exports.isError(self) ~= true) then
                 BetterErrors.throw(BetterErrors.new('INVALID_ERROR_TYPE'), 2);
             end
             local result = self.type;
@@ -53,6 +53,40 @@ function exports.new(errtype, data)
         end
     end
     return instance;
+end
+
+function exports.extract(message)
+    if (message == nil or message == '') then
+        return exports.new('Error');
+    end
+
+    if (type(message) ~= 'string') then
+        exports.throw(exports.new('INVALID_MESSAGE', { message = 'cannot extract error information from non-strings'}), 2);
+    end
+
+    if (string.sub(message, 1,1) == '/') then
+
+        local file,line,column,msg = string.match(message, '([\\\\/][^"*<>|?]+):(%d*):(%d*).*');
+
+        if (file == nil or line == nil or column == nil or msg == nil) then
+            return exports.new('ERROR', { message = message });
+        end
+
+        line = line == '' and -1 or tonumber(line) --[[@as number]];
+        column = column == '' and -1 or tonumber(column) --[[@as number]];
+
+        while (string.sub(message, 1, 1) == ' ') do
+            msg = msg.sub(message, 2, 1);
+        end
+
+        local err = exports.new('ERROR', { message = msg });
+        err.stacktrace = {
+            { source = file, line = line, column = column, name = '(unknown)' };
+        }
+        return err;
+
+    end
+    return exports.new('Error', { message = message });
 end
 
 ---Creates a wrapping function that provides defaults for a BetterErrors Error
@@ -89,11 +123,10 @@ end
 function exports.throw(err, level)
 
     if (type(err) == 'string') then
-        -- TODO: Attempt to exact file:line:column info from error
-        err = BetterErrors.new('Error', { message = err });
+        err = exports.extract(err);
     end
 
-    if (getmetatable(err).__index == BetterErrorsInstanceIndex) then
+    if (exports.isError(err)) then
 
         -- determine where to start the stack trace at
         if (type(level) ~= 'number' or level < 1) then
@@ -148,6 +181,13 @@ function exports.throw(err, level)
 
     -- raise error
     error(err, level);
+end
+
+---Returns whether the subject is a BetterErrors Error instance
+---@param subject any
+---@return boolean
+function exports.isError(subject)
+    return type(subject) == 'table' and getmetatable(subject).__index == BetterErrorsInstanceIndex;
 end
 
 return exports;
