@@ -484,10 +484,13 @@ function Expect:done()
     return self.result;
 end
 
+
+local exports = { consts = {} };
+
 ---Creates an Expect instance using provided values as the base value
 ---@param ... any Values to use as the base value
 ---@return sreject.Expect
-local function expect(...)
+function exports.expect(...)
     return setmetatable({
         parent = nil,
         negate = false,
@@ -501,7 +504,7 @@ end
 ---Creates an Expect instance using the result of calling `callback` as the base value
 ---@param callback any The function to call to get the base value
 ---@return sreject.Expect
-local function expectf(callback, ...)
+function exports.expectf(callback, ...)
     if (type(callback) ~= 'function') then
         error(Error('INVALID_CALLBACK', { message = 'callback is not a function' }));
     end
@@ -523,7 +526,7 @@ end
 ---can be retrieved with :done()
 ---@param ... any Values to use as the base value
 ---@return sreject.Expect
-local function suspect(...)
+function exports.suspect(...)
     return setmetatable({
         parent = nil,
         negate = false,
@@ -540,7 +543,7 @@ end
 ---can be retrieved with :done()
 ---@param callback any The function to call to get the base value
 ---@return sreject.Expect
-local function suspectf(callback, ...)
+function exports.suspectf(callback, ...)
     if (type(callback) ~= 'function') then
         error(Error('INVALID_CALLBACK', { message = 'callback is not a function' }));
     end
@@ -556,37 +559,14 @@ local function suspectf(callback, ...)
     }, { __index = Expect });
 end
 
----Skips the corresponding actual value for the test
----@return sreject.Expect.metavalue.ignore
-local function ignore() return ignored; end
+---@class sreject.expect.Mock
+---@field calls {[number]: { args: {[number]: any}, success?: boolean, result: any }}
+---@field [any] any
 
----Skips the remaining actual values in a test
----@return sreject.Expect.metavalue.ignoreRest
-local function ignoreRest() return ignoredRest; end
-
----Creates a new 'all' meta value
----
----Cannot be used within itself or within the `any()` metavalue
----@param value any The value to use for each comparison test against the 'all' meta value
----@return sreject.Expect.metavalue.all
-local function all(value)
-    local result = {};
-    metavalues[result] = { type = 'all', value = value }
-    return result
-end
-
----Creates a new 'any' meta value
----
----Cannot be used within itself
----@param ... any A list of values that will be compared against before the test fails
----@return sreject.Expect.metavalue.any
-local function any(...)
-    local result = {};
-    metavalues[result] = { type = 'any', value = table.pack(...) }
-    return result;
-end
-
-local function Mock(fn)
+---Creates a mocked function
+---@param fn fun(...):any The function to wrap
+---@return sreject.expect.Mock
+function exports.Mock(fn)
     local mocked = { calls = {} };
 
     function mocked.reset()
@@ -618,16 +598,34 @@ local function Mock(fn)
     return mocked
 end;
 
-return {
-    expect = expect,
-    expectf = expectf,
-    suspect = suspect,
-    suspectf = suspectf,
-    Mock = Mock,
-    consts = {
-        ignore = ignore,
-        ignoreRest = ignoreRest,
-        all = all,
-        any = any
-    }
-}
+---Skips the corresponding actual value for the test
+---@return sreject.Expect.metavalue.ignore
+function exports.consts.ignore() return ignored; end
+
+---Skips the remaining actual values in a test
+---@return sreject.Expect.metavalue.ignoreRest
+function exports.consts.ignoreRest() return ignoredRest; end
+
+---Creates a new 'all' meta value
+---
+---Cannot be used within itself or within the `any()` metavalue
+---@param value any The value to use for each comparison test against the 'all' meta value
+---@return sreject.Expect.metavalue.all
+function exports.consts.all(value)
+    local result = {};
+    metavalues[result] = { type = 'all', value = value }
+    return result
+end
+
+---Creates a new 'any' meta value
+---
+---Cannot be used within itself
+---@param ... any A list of values that will be compared against before the test fails
+---@return sreject.Expect.metavalue.any
+function exports.consts.any(...)
+    local result = {};
+    metavalues[result] = { type = 'any', value = table.pack(...) }
+    return result;
+end
+
+return exports;
