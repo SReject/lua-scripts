@@ -53,6 +53,10 @@ local defaultReporter = function()
     end
 end
 
+local reporters = {
+    default = defaultReporter
+}
+
 -- consts
 local eventname = {
     INIT = 'INIT',
@@ -78,7 +82,7 @@ local errortypes = {
     TEST_NOT_FOUND = 'TEST_NOT_FOUND'
 };
 
-local function lut(reportHandler)
+local function lut(file, reportHandler)
 
     ---@class sreject.lut.state
     local state = {
@@ -92,13 +96,20 @@ local function lut(reportHandler)
     local suiteid = state.id;
 
     local reporter;
-    if (reportHandler) then
+    if (type(reportHandler) == 'string') then
+        if (reporters[reportHandler]) then
+            reporter = reporters[reportHandler]();
+        else
+            error('unknown reporter: ' .. reportHandler);
+        end
+
+    elseif (reportHandler) then
         reporter = reportHandler;
     else
         reporter = defaultReporter();
     end
 
-    reporter(eventname.INIT, { suiteid = suiteid, id = suiteid });
+    reporter(eventname.INIT, { suiteid = suiteid, id = suiteid, file = file });
 
     reporter(eventname.OPENED, { suiteid = suiteid, id = suiteid });
 
@@ -160,7 +171,6 @@ local function lut(reportHandler)
 
         elseif (type(callback) ~= 'function') then
             reporter(eventname.ERROR, { suiteid = suiteid, type = errortypes.INVALID_CALLBACK, message = "specified it() callback is invalid", id = test.id, value = callback });
-
             error(Error('INVALID_CALLBACK', { message = 'invalid it() callback parameter specified'}), 2);
         end
     end;
@@ -225,49 +235,34 @@ local function lut(reportHandler)
             state = state.children[index];
         end
 
-        if (state.type == 'group') then
-
-            if (state.parent ~= nil) then
-                reporter(eventname.TEST_GROUP_START, { suiteid = suiteid, id = state.id, title = state.title });
-            end
-
-            local function testChildren(children)
-                for i,child in next,children,nil do
-                    if (child.type == 'group') then
-                        reporter(eventname.TEST_GROUP_START, { suiteid = suiteid, id = child.id, title = child.title });
-                        testChildren(child.children);
-                        reporter(eventname.TEST_GROUP_END, { suiteid = suiteid, id = child.id });
-                    else
-                        reporter(eventname.UNIT_TEST_START, { suiteid = suiteid, id = child.id, title = child.title });
-                        local result = table.pack(pcall(child.callback));
-                        local success = table.remove(result, 1);
-                        if (success == true) then
-                            reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = child.id, success = true, result = result, title = child.title });
-                        else
-                            reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = child.id, success = false, result = result, title = child.title });
-                        end
-                    end
+        -- Run test suite
+        local pending = { state };
+        while (#pending > 0) do
+            local entry = table.remove(pending, 1);
+            if (entry.type == 'test') then
+                reporter(eventname.UNIT_TEST_START, { suiteid = suiteid, id = entry.id, title = entry.title });
+                local result = table.pack(pcall(entry.callback));
+                local success = table.remove(result, 1);
+                if (success == true) then
+                    reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = entry.id, success = true, result = result, title = entry.title });
+                else
+                    reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = entry.id, success = false, result = result, title = entry.title });
                 end
-            end
-            testChildren(state.children);
-            if (state.parent ~= nil) then
-                reporter(eventname.TEST_GROUP_END, { suiteid = suiteid, id = state.id });
-            end
-
-        else
-            reporter(eventname.UNIT_TEST_START, { suiteid = suiteid, id = state.id, title = state.title });
-            local result = table.pack(pcall(state.callback));
-            local success = table.remove(result, 1);
-            print('test state: ', success);
-            if (success == true) then
-                reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = state.id, success = true, result = result, title = state.title });
+            elseif (entry.type == 'groupend') then
+                reporter(eventname.TEST_GROUP_END, { suiteid = suiteid, id = entry.id });
             else
-                reporter(eventname.UNIT_TEST_END, { suiteid = suiteid, id = state.id, success = false, result = result, title = state.title });
+                if (entry.parent ~= nil) then
+                    reporter(eventname.TEST_GROUP_START, { suiteid = suiteid, id = entry.id, title = entry.title });
+                end
+                for index,value in ipairs(entry.children) do
+                    table.insert(pending, index, value);
+                end
+                table.insert(pending, #entry.children + 1, { type = 'groupend', id = entry.id });
             end
         end
 
+        -- report skipped groups/tests that occur after the targeted test(s)
         if (startIndex > 0) then
-            -- report skipped groups/tests that occur after the targeted test(s)
             while (true) do
                 if (startIndex < #state.children) then
                     for idx=startIndex+1,#state.children,1 do
