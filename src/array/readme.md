@@ -321,7 +321,15 @@ function Array.reduce(array, reducer, initialValue) end
 Any method that returns an Array instance may be chained into another array-related method call
 
 ```lua
--- Not using chaining
+-- Not using chaining, leveraging a result-tracking variable
+local result = Array.new(1, 2, 3, 26);
+result = Array.map(result, function (value) return string.char(96 + value));
+result = Array.map(result, string.upper);
+result = Array.filter(result, function (value) return value ~= "Z" end);
+result = Array.reverse(result);
+print(result.join(result, ','));
+
+-- Not using joining or result-tracking variable
 print(
     Array.join(
         Array.reverse(
@@ -333,20 +341,19 @@ print(
                     ), -- {"a", "b", "c", "z"}
                     string.upper
                 ), -- {"A", "B", "C", "Z"}
-                function (value) return value ~= "Z"
+                function (value) return value ~= "Z" end
             ) -- {"A", "B", "C"}
         ), -- {"C", "B", "A"}
         ","
     ) -- "C,B,A"
 );
 
-
 -- Using chaining
 print(
     Array.new(1, 2, 3, 26)
         :map(function (value) return string.char(96 + value)) -- {"a", "b", "c", "z"}
         :map(string.upper) -- {"A", "B", "C", "Z"}
-        :filter(function (value) return value ~= "Z") -- {"A", "B", "C"}
+        :filter(function (value) return value ~= "Z" end) -- {"A", "B", "C"}
         :reverse() -- {"C", "B", "A"}
         :join(",") -- "C,B,A"
 );
