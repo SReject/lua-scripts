@@ -328,7 +328,7 @@ print(
             Array.map(
                 Array.map(
                     Array.new(1, 2, 3, 26),
-                    function (value) return string.char(92 + value)
+                    function (value) return string.char(96 + value)
                 ) --[[ {"a", "b", "c", "z"} ]],
                 string.upper
             ) --[[ {"A", "B", "C", "Z"} ]],
@@ -342,7 +342,7 @@ print(
 -- Using chaining
 print(
     Array.new(1, 2, 3, 26)
-        :map(function (value) return string.char(92 + value)) --[[ {"a", "b", "c", "z"} ]]
+        :map(function (value) return string.char(96 + value)) --[[ {"a", "b", "c", "z"} ]]
         :map(string.upper) --[[ {"A", "B", "C", "Z"} ]]
         :filter(function (value) return value ~= "Z") --[[ {"A", "B", "C"} ]]
         :join(",") --[[ "A,B,C" ]]
