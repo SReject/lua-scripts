@@ -323,11 +323,11 @@ Any method that returns an Array instance may be chained into another array-rela
 ```lua
 -- Not using chaining, leveraging a result-tracking variable
 local result = Array.new(1, 2, 3, 26);
-result = Array.map(result, function (value) return string.char(96 + value));
-result = Array.map(result, string.upper);
-result = Array.filter(result, function (value) return value ~= "Z" end);
-result = Array.reverse(result);
-print(result.join(result, ','));
+result = Array.map(result, function (value) return string.char(96 + value)); -- {"a", "b", "c", "z"}
+result = Array.map(result, string.upper); -- {"A", "B", "C", "Z"}
+result = Array.filter(result, function (value) return value ~= "Z" end); -- {"A", "B", "C"}
+result = Array.reverse(result); -- {"C", "B", "A"}
+print(result.join(result, ',')); -- "C,B,A"
 
 -- Not using joining or result-tracking variable
 print(
