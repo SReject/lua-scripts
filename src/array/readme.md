@@ -345,7 +345,7 @@ print(
 print(
     Array.new(1, 2, 3, 26)
         :map(function (value) return string.char(96 + value)) -- {"a", "b", "c", "z"}
-        :map(string.upper) --[[ {"A", "B", "C", "Z"} ]]
+        :map(string.upper) -- {"A", "B", "C", "Z"}
         :filter(function (value) return value ~= "Z") -- {"A", "B", "C"}
         :reverse() -- {"C", "B", "A"}
         :join(",") -- "C,B,A"
