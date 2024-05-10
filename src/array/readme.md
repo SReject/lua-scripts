@@ -329,7 +329,7 @@ result = Array.filter(result, function (value) return value ~= "Z" end); -- {"A"
 result = Array.reverse(result); -- {"C", "B", "A"}
 print(result.join(result, ',')); -- "C,B,A"
 
--- Not using joining or result-tracking variable
+-- Not using chaining or result-tracking variable
 print(
     Array.join(
         Array.reverse(
@@ -348,7 +348,7 @@ print(
     ) -- "C,B,A"
 );
 
--- Using chaining
+-- Using chaining; no result-tracking variable needed
 print(
     Array.new(1, 2, 3, 26)
         :map(function (value) return string.char(96 + value)) -- {"a", "b", "c", "z"}
