@@ -727,18 +727,22 @@ describe('Method Call Buffering -- TODO', function ()
 end);
 --]]
 describe('Method Aliasing', function ()
+
     it('Maps :delete() to :remove()', function ()
         expect(Array.delete)
             :equals(Array.remove);
     end);
+
     it('Maps :every() to :all()', function ()
         expect(Array.every)
             :equals(Array.all);
     end);
+
     it('Maps :forEach() to :each()', function ()
         expect(Array.forEach)
             :equals(Array.each);
     end);
+
     it('Maps :some() to :any()', function ()
         expect(Array.some)
             :equals(Array.any);
