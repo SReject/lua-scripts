@@ -124,6 +124,31 @@ function Array:any(callback, allowEmpty)
 end
 Array.some = Array.any;
 
+---Returns a new array instance containing only one of each equivulant value
+---@param allowNil boolean? Allows a nil be to added to the result if such a value has not been encountered
+---@return sreject.Array # A new Array instance
+function Array:dedupe(allowNil)
+    local noNil = true;
+    local encountered = {};
+    local result = Array.new();
+    local insertIndex = 0;
+    for index=1, #self, 1 do
+        local value = self[index];
+        if (value == nil) then
+            if (noNil and allowNil) then
+                insertIndex = insertIndex + 1;
+                noNil = false;
+            end
+        elseif (encountered[value] == nil) then
+            insertIndex = insertIndex + 1;
+            encountered[value] = true;
+            result[insertIndex] = value;
+        end
+    end
+    rawset(result, 'length', insertIndex);
+    return result;
+end
+
 ---Calls the callback for each item in the array.
 ---@param callback fun(value: any, index: number, array: sreject.Array): nil
 ---@return sreject.Array # The current array instance

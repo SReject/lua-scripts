@@ -148,6 +148,33 @@ describe('Array:concat()', function ()
     --Array:concat() is already tested via Array.concat tests
 end);
 
+describe('Array:dedupe()', function ()
+
+    it('Does not raise an error', function()
+        expect(Array.dedupe, Array.new())
+            :isnt():throws();
+    end);
+
+    it('Returns a new Array instance', function()
+        local array = Array.new();
+        expect(array:dedupe())
+            :as(Array)
+            :isnt():equals(array);
+    end);
+
+    it('Removes duplicates', function()
+        local array = Array.new(1, 2, 1):dedupe();
+        expect(#array, array[1], array[2])
+            :equals(2, 1, 2);
+    end);
+
+    it('Keeps a singular nil value', function ()
+        local array = Array.new(1, nil, nil, 2):dedupe(true);
+        expect(#array)
+            :equals(3);
+    end);
+end);
+
 describe('Array:each()', function ()
 
     it('Throws an error when callback is not a function', function()
