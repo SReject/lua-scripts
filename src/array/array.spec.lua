@@ -726,7 +726,6 @@ describe('Method Call Buffering -- TODO', function ()
     -- TODO
 end);
 --]]
---[[
 describe('Method Aliasing', function ()
     it('Maps :delete() to :remove()', function ()
         expect(Array.delete)
@@ -745,4 +744,3 @@ describe('Method Aliasing', function ()
             :equals(Array.any);
     end);
 end);
---]]
