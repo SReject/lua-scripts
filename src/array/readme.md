@@ -159,6 +159,17 @@ Creates a new Array instance, adds the items from each given array, then returns
 function Array.chainable(...) end
 ```
 
+### `.dedupe(keepNil)`
+Creates a new array instance containing one of each unique item from the base instance.
+
+If `keepNil` is true and a nil value is enountered, one will be added to the resulting array
+
+```lua
+---@param keepNil boolean?
+---@return Array
+function Array.dedupe(array, keepNil) end
+```
+
 ### `.join(delimiter, stringifier)`
 Joins items in the array into a singular string that is returned.
 
@@ -212,6 +223,7 @@ If `atLeastOne` is true empty arrays will result in `false` being returned
 ---@param atLeastOne boolean?
 ---@return boolean
 function Array.all(array, testCallback, atLeastOne) end
+function Array.every(array, testCallback, atLeastOne) end
 ```
 
 ### `.any(testCallback, allowEmpty)`
@@ -227,6 +239,7 @@ If `allowEmpty` is true empty arrays will result in `true` being returned
 ---@param allowEmpty boolean?
 ---@return boolean
 function Array.any(array, testCallback, allowEmpty) end
+function Array.some(array, testCallback, allowEmpty) end
 ```
 
 ### `.filter(testCallback)`
