@@ -20,8 +20,34 @@ To create a new instance call `Array.new()` with the initial values of the array
 local example = require('array').Array.new("a", "b", "c" ) -- { "a", "b", "c" }
 ```
 
+# Static Methods
 
+### `.concat(...)`
+Returns a new Array instance contain all numerically-indexed items of each specified array or table
 
+```lua
+---@param ... Array|table
+---@return Array
+function Array.concat(...) end
+```
+
+### `.from(subject)`
+Returns a new Array instance containing the numerically-index items of `subject`
+
+```lua
+---@param subject table
+---@return Array
+function Array.from(subject) end
+```
+
+### `.isArray(subject)`
+Returns true if the subject is an Array instance
+
+```lua
+---@param subject any
+---@return boolean
+function Array.isArray(subject) end
+```
 
 # Properties
 Array instances have the following properties
@@ -33,9 +59,6 @@ Returns the length of the array
 ---@type number
 local Array.length
 ```
-
-
-
 
 # Modification
 The following methods modify the underlaying Array instance
@@ -242,6 +265,19 @@ function Array.any(array, testCallback, allowEmpty) end
 function Array.some(array, testCallback, allowEmpty) end
 ```
 
+### `.each(callback)`
+Calls the given `callback` for each item in the array in the order they appear.
+
+[Chainable](#chaining)
+
+```lua
+---@param array Array
+---@param callback fun(value: any, index: number, array: Array):nil
+---@return Array
+function Array.each(array, callback) end
+function Array.forEach(array, callback) end
+```
+
 ### `.filter(testCallback)`
 Returns a new Array instance containing only the items from the base array instance that pass `testCallback()`.
 
@@ -289,17 +325,13 @@ if `stopPosition` is less than 1, it assumed to be counting backwards from the e
 function Array.find(array, testCallback) end
 ```
 
-### `.each(callback)`
-Calls the given `callback` for each item in the array in the order they appear.
-
-[Chainable](#chaining)
+### `.iterator()`
+Returns an instance-specific iterator for use in `for...in`
 
 ```lua
----@param array Array
----@param callback fun(value: any, index: number, array: Array):nil
----@return Array
-function Array.each(array, callback) end
-function Array.forEach(array, callback) end
+---@return (fun(subject,index): nil|(number, any)), Array, number
+function Array.iterator() end
+function Array.iter() end
 ```
 
 ### `.map(transformer)`
@@ -326,9 +358,6 @@ Returns the end result of calling the specified `reducer()` for each item in the
 ---@return any
 function Array.reduce(array, reducer, initialValue) end
 ```
-
-
-
 
 # Chaining
 Any method that returns an Array instance may be chained into another array-related method call
